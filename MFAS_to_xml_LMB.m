@@ -8,21 +8,22 @@
 
 %% edit me!
 
-deployment = 'BAJA_GI_05'; % deployment name, must match HARPdb names
-tpws2 = dir('L:\Baja\MFA Detect\Baja_TPWS2\Baja_GI_05*TPWS2.mat'); % list your TPWS2 files
+deployment = 'SOCAL_N_73'; % deployment name, must match HARPdb names
+tpws2 = dir('A:\SOCAL\MFAS\SOCAL_N_73_TPWS\*TPWS2.mat'); % list your TPWS2 files
 sp = "Homo sapiens"; % species code
 ctype = "Active Sonar"; % call type
 csubtype = "MFA<5kHz"; % call subtype
 uploadFlag = 1; % 1; % flag for uploading to Tethys, yes (1) or no (0). if you're not Lauren, you need to change these settings!!!
-xml_out = 'L:\Baja\MFA Detect\Baja_GI_05\Baja_GI_05_MFA_TPWS\BAJA_GI_05_MFAS_LMB.xml'; % path to save Tethys format xml document
+xml_out = 'A:\SOCAL\MFAS\SOCAL_N_73_TPWS\SOCAL_N_73_MFAS_LMB.xml'; % path to save Tethys format xml document
 spd = 60*60*24; % seconds in day, for datenum conversion
-eff.Start = [datetime('04-Dec-2023 00:00:00')]; % start time of effort
-eff.End = [datetime('04-Dec-2024 01:26:15')]; % end time of effort
+eff.Start = [datetime('12-Nov-2022 18:00:00')]; % start time of effort
+eff.End = [datetime('18-Apr-2023 15:36:15')]; % end time of effort
 
 %settings for encounters, modify if you want
 p.gth =  .5;    % gap time in hrs between sessions
 p.minBout = 0;  % minimum bout duration in seconds
 p.ltsaMax = 6;  % ltsa maximum duration per session
+p.tfFullFile = 'G:\Shared drives\MBARC_TF\900-999\990\990_220823_A_HARP.tf' % path to transfer function used
 
 %% calculate encounters
 
@@ -35,7 +36,9 @@ for i = 1:length(tpws2) % for each TPWS2 files
 
 end
 
-[nb,eb,sb,bd] = calculate_bouts(allMTT,p); % this function is in DetEdit
+if height(allMTT>0)
+    [nb,eb,sb,bd] = calculate_bouts(allMTT,p); % this function is in DetEdit
+end
 
 %% write XML
 
@@ -75,13 +78,18 @@ if uploadFlag == 1
     % data properly?
     description.setAbstract('The MFA sonar pings in this dataset were processed to maintain our long-term acoustic monitoring timeseries for this region. These encouters were detected using the MFA sonar detector and verified using DetEdit.');
     description.setMethod('For a description of this analysis, see the "Anthropogenic Sounds" section of the methods in MPLTM668 (https://www.cetus.ucsd.edu/reports.html). Detections verified at the ping level, data is inputted here as encounters. Encounters calculated with minimum gap time between sessions as 30 minutes. Minimum bout duration 0 s.');
-    description.setObjectives('Maintain MFA sonar timeseries at GI.');
-    
+    description.setObjectives('Maintain MFA sonar timeseries in SOCAL.');
+
     % define information about the algorithm
     alg = d.getAlgorithm();
     h.createRequiredElements(alg);
     alg.setSoftware('MFA sonar detector: frosty.ucsd.edu\\MBARC_ALL\Training\Detectors\MFA sonar detector');
-    alg.setMethod('MFA sonar detector, all detections verified by analyst LMB using DetEdit.')
+    alg.setMethod('MFA sonar detector, all detections verified by analyst LMB/CMS/NP using DetEdit.')
+    % add in some more specific info from detection
+    h.createElement(alg,'Parameters')
+    algparm = alg.getParameters();
+    algparmList = algparm.getAny();
+    h.AddAnyElement(algparmList,'tf_path',p.tfFullFile);
 
     % effort
     effort = d.getEffort();
@@ -116,31 +124,35 @@ if uploadFlag == 1
 
     fprintf('Beginning to add detections. This may take a while, please be patient. \n')
 
-    for i = 1:height(sb) % for each bin
+    if exist('sb','var')
 
-        det = Detection(); % grab the detection object
+        for i = 1:height(sb) % for each bin
 
-        det.setStart(h.timestamp(dbSerialDateToISO8601(sb(i)))) % input start time of this bin
-        det.setEnd(h.timestamp(dbSerialDateToISO8601(eb(i)))) % set end time
-        speciestype.setValue(h.toXsInteger(str2num(species))); % set the species type
-        det.setSpeciesId(speciestype); % plug that in
+            det = Detection(); % grab the detection object
 
-        h.createElement(det,'Call'); % create a field for call type
-        callList = det.getCall(); % grab the call element
-        callList.add(ctype); % specify these are sonar pings
-        h.createElement(det,'Parameters');
-        params = det.getParameters();
-        params.setSubtype(csubtype); % specify the subtype
+            det.setStart(h.timestamp(dbSerialDateToISO8601(sb(i)))) % input start time of this bin
+            det.setEnd(h.timestamp(dbSerialDateToISO8601(eb(i)))) % set end time
+            speciestype.setValue(h.toXsInteger(str2num(species))); % set the species type
+            det.setSpeciesId(speciestype); % plug that in
 
-        detList.add(det); % add this detection to the list
+            h.createElement(det,'Call'); % create a field for call type
+            callList = det.getCall(); % grab the call element
+            callList.add(ctype); % specify these are sonar pings
+            h.createElement(det,'Parameters');
+            params = det.getParameters();
+            params.setSubtype(csubtype); % specify the subtype
+
+            detList.add(det); % add this detection to the list
+
+        end
 
     end
-    
+
     fprintf('XML document formatted for Tethys saving at: %s\n',xml_out)
     m.marshal(d, xml_out) % save the xml file in your path from above
     fprintf('XML file saved. Now launching submission interface. Please upload the XML file you just generated. \n')
 
     dbSubmit('Server','breach.ucsd.edu','Port',9779) % launch the submission interface
-    
+
 end
 
