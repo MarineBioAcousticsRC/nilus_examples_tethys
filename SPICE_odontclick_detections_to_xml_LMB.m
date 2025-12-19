@@ -14,19 +14,28 @@
 
 %% edit me!
 
-deployment = 'SOCAL_W_08'
-id = dir('K:\W\W_08\SOCAL_W_08_Bb_TPWS2\*ID2.mat'); % path to your ID2 files
-load('K:\W\W_08\SOCAL_W_08_detector_params.mat'); % path to detector metadata
-eff.Start = [datetime('09-Nov-2024 19:00:00')]; % start time of effort
-eff.End = [datetime('17-Apr-2025 21:10:00')]; % end time of effort
+deployment = 'SOCAL_H_79';
+id = dir('D:\H\H_79\SOCAL_H_79_Bb_TPWS2\*ID2.mat'); % path to your ID2 files
+load('D:\H\H_79\SOCAL_H_79_detector_params.mat'); % path to detector metadata - if you don't have a script with all of this set, you'll need to input manually. see SPICE_odontclick_multispecies_detections_to_xml_LMB.m for an example
+eff.Start = [datetime('10-Nov-2024 18:00:00')]; % start time of effort
+eff.End = [datetime('17-Apr-2025 15:10:44')]; % end time of effort
 sp = "Berardius bairdii"; % species name
 unkFlag = 0; % 1 if this is an unidentified BW click type, 0 if you know the species
 fourFlag = 0; % 1 if this is a 4ch, 0 if single
 ch = 1; % if you have multiple channels, the channel that you processed
 p.binDur = 1; % 1 minute
 uploadFlag = 1; % 1; % flag for uploading to Tethys, yes (1) or no (0). if you're not Lauren, you need to change these settings!!!
-xml_out = 'K:\W\W_08\SOCAL_W_08_Bb_TPWS2\SOCAL_W_08_Bb_Tethys.xml'; % path to save Tethys format xml document
+xml_out = 'D:\H\H_79\SOCAL_H_79_Bb_TPWS2\SOCAL_H_79_Bb_Tethys.xml'; % path to save Tethys format xml document
 spd = 60*60*24; % seconds in day, for datenum conversion
+
+% input methods/abstract info
+p.methods = 'For a description of this analysis, see the "Beaked Whale" section of the methods in MPLTM668 (https://www.cetus.ucsd.edu/reports.html). For a description of the general workflow, see Frasier et al 2017 (https://doi.org/10.1371/journal.pcbi.1005823) and Frasier 2021 (https://doi.org/10.1371/journal.pcbi.1009613). Detections verified at the click level, data is inputted here as number of clicks per minute bin.';
+p.abstract = 'The echolocation clicks contained in this dataset were processed to maintain our long-term beaked whale monitoring timeseries for this region. These calls were detected and classified using Triton and verified using DetEdit.';
+p.objectives = 'Maintain long-term beaked whale timeseries in Southern California. Detect at the click-level for density estimation.';
+p.software = 'Triton https://github.com/MarineBioAcousticsRC/Triton';
+p.version = 'GitHub commit # acd3e2f6001e34f4e396450f72234b99e9658bb4';
+p.algmethod = 'Machine learning workflow, all detections verified by analyst LMB using DetEdit.';
+p.userid = 'lbaggett'; % person who uploaded the data
 
 %% group effort in bins
 
@@ -73,8 +82,8 @@ if uploadFlag == 1
     h.createRequiredElements(d); % create the required elements for our XML file
 
     % identifiers
-    d.setUserId('lbaggett'); % the name of the person who processed the data
-    d.setId([deployment,'_Bb_SPICE_click_detections']); % unique ID for this file
+    d.setUserId(p.userid); % the name of the person who processed the data
+    d.setId([deployment,'Bb_SPICE_click_detections_',p.userid]); % unique ID for this file
     data_source = d.getDataSource();
     data_source.setDeploymentId(deployment); % deployment ID
 
@@ -84,16 +93,16 @@ if uploadFlag == 1
     % populate some information for people in the future! where can they
     % find a description of the methods that will be helpful for using this
     % data properly?
-    description.setAbstract('The echolocation clicks contained in this dataset were processed to maintain our long-term beaked whale monitoring timeseries for this region. These calls were detected and classified using Triton and verified using DetEdit.');
-    description.setMethod('For a description of this analysis, see the "Beaked Whale" section of the methods in MPLTM668 (https://www.cetus.ucsd.edu/reports.html). For a description of the general workflow, see Frasier et al 2017 (https://doi.org/10.1371/journal.pcbi.1005823) and Frasier 2021 (https://doi.org/10.1371/journal.pcbi.1009613). Detections verified at the click level, data is inputted here as number of clicks per minute bin.');
-    description.setObjectives('Maintain long-term beaked whale timeseries in Southern California. Detect at the click-level for density estimation.');
+    description.setAbstract(p.abstract);
+    description.setMethod(p.methods);
+    description.setObjectives(p.objectives);
     
     % define information about the algorithm
     alg = d.getAlgorithm();
     h.createRequiredElements(alg);
-    alg.setSoftware('Triton https://github.com/MarineBioAcousticsRC/Triton');
-    alg.setVersion('GitHub commit # acd3e2f6001e34f4e396450f72234b99e9658bb4');
-    alg.setMethod('Machine learning workflow, all detections verified by analyst LMB using DetEdit.')
+    alg.setSoftware(p.software);
+    alg.setVersion(p.version);
+    alg.setMethod(p.algmethod)
 
     % add in some more specific info from detection
     h.createElement(alg,'Parameters')
