@@ -166,11 +166,11 @@ detList = on.getDetection();
 
 fprintf('Beginning to bin detections and then add them to XML. This may take a while, please be patient. \n')
 
-thisSpClicks = [];
 for k = 1:length(sp) % for each species selected
 
     % generate an empty table for binning, calculate effort, etc
     thisSpeciesBinEffort = binEffort; % make a table by copying the template
+    thisSpClicks = []; % preallocate to save clicks from this species
 
     % find ITIS code for this species
     species = q.QueryTethys(char("lib:completename2tsn(""" + splatin{k} + """)")); % get the ITIS species code
