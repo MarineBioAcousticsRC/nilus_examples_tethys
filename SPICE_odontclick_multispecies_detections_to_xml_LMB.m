@@ -13,33 +13,33 @@
 
 %% edit me!
 
-deployment = 'CHNMS_NO_03';
-id = dir('M:\Odonts\detEdited_ID\CHNMS_NO_03\*ID1.mat'); % path to your ID2 files
-eff.Start = [datetime('14-May-2024 00:00:00')]; % start time of effort
-eff.End = [datetime('06-Nov-2024 20:57:13')]; % end time of effort
+deployment = 'GOFAKCA-03';
+id = dir('V:\Joey\detEdited_ID_files\GofAK_CA\*ID1.mat'); % path to your ID2 files
+eff.Start = [datetime('06-Jun-2013 00:00:00')]; % start time of effort
+eff.End = [datetime('17-Jun-2013 10:26:35')]; % end time of effort
 unkFlag = 0; % 1 if this is an unidentified BW click type, 0 if you know the species
 fourFlag = 0; % 1 if this is a 4ch, 0 if single
 ch = 1; % if you have multiple channels, the channel that you processed
 p.binDur = 1; % 1 minute
-xmlOutFolder = 'M:\Odonts\detEdited_ID\CHNMS_NO_03'; % path to save Tethys format xml document
+xmlOutFolder = 'V:\Joey\detEdited_ID_files\GofAK_CA'; % path to save Tethys format xml document
 spd = 60*60*24; % seconds in day, for datenum conversion
 
-sp = {'DdDcTt','Gg','LoA','PhA','PhB'}; % set the species labels from the ID files that you want to upload
-splatin = {'Delphinidae','Grampus griseus','Lagenorhynchus obliquidens','Phocoena phocoena','Phocoena phocoena'}; % the corresponding latin species names for the codes above
+sp = {'Kogia','Pd','Ph'}; % set the species labels from the ID files that you want to upload
+splatin = {'Kogia','Phocoenoides dalli','Phocoena phocoena'}; % the corresponding latin species names for the codes above
 % *** this code is modified to specify call types for Lo and Pp, if you
 % don't have call subtypes then you'll need to modify this
 
 % set some params manually since in this case my intern didn't save the
 % metadata files, just a screenshot
 p.dBppThreshold = 118;
-p.bpRanges = [5, 155];
+p.bpRanges = [80, 160];
 p.tfFullFile = 'G:\Shared drives\MBARC_TF\900-999\958\958_201020_B_HARP.tf';
-p.neuralNetwork = 'CHNMS_NO_combined_trainedNetwork_bin.mat';
+p.neuralNetwork = 'NBHF_trainedNetwork_bin.mat';
 
 % input methods/abstract info
-p.methods = 'For a description of the general workflow, see Frasier et al 2017 (https://doi.org/10.1371/journal.pcbi.1005823) and Frasier 2021 (https://doi.org/10.1371/journal.pcbi.1009613). Detections verified at the minute bin level. This work will be published by Baggett et al.';
-p.abstract = 'The echolocation clicks contained in this dataset were processed as part of the CADEMO analysis, to establish a baseline of odontocete acoustic behavior at a future offshore wind site. These calls were detected and classified using Triton and verified using DetEdit. Analyst Joey Andres verified detections, as supervised by Lauren Baggett. We were on effort for all odontocete echolocation clicks. Bins labeled just as Delphinidae are likely bottlenose or common dolphins.';
-p.objectives = 'Understand odontocete acoustic presence at a future offshore wind site. Establish a baseline of acoustic behavior for odontocetes (clicks) before construction begins.';
+p.methods = 'For a description of the general workflow, see Frasier et al 2017 (https://doi.org/10.1371/journal.pcbi.1005823) and Frasier 2021 (https://doi.org/10.1371/journal.pcbi.1009613). Detections verified at the minute bin level. This work will be published by Andres et al.';
+p.abstract = 'The echolocation clicks contained in this dataset were processed as part of a HARP NBHF callers analysis, to understand the presence of NBHF callers at 320 kHz HARP sites. These calls were detected and classified using Triton and verified using DetEdit. Analyst Joey Andres verified detections, as supervised by Lauren Baggett.';
+p.objectives = 'Understand NBHF callers acoustic presence at 320 kHz HARP sites. Look for spatial and temporal patterns.';
 p.software = 'Triton https://github.com/MarineBioAcousticsRC/Triton';
 p.version = 'GitHub commit # acd3e2f6001e34f4e396450f72234b99e9658bb4';
 p.algmethod = 'Machine learning workflow, all detections verified by analyst JFA using DetEdit.';
@@ -73,6 +73,7 @@ fprintf('WARNING: You are about to upload to Tethys. Have you updated your metad
 % keyboard % if you have updated your metadata and are truly ready to upload, comment out this line
 
 q=dbInit('Server','breach.ucsd.edu','Port',9779); % connect to Tethys server
+q.setSpeciesIdInputOutput('Abbrev', 'SIO.SWAL.v1') % set the labels into our SWAL format
 % dbOpenSchemaDescription(q,'Detections'); % open locaize schema (for our reference) % look at all the information!
 
 import nilus.* % import Nilus, this provides Java objects that correspond to XML elements
@@ -87,7 +88,7 @@ h.createRequiredElements(d); % create the required elements for our XML file
 
 % identifiers
 d.setUserId(p.userid); % the name of the person who processed the data
-d.setId([deployment,'_odontocete_SPICE_click_detections_',p.userid]); % unique ID for this file
+d.setId([deployment,'_NBHF_SPICE_click_detections_',p.userid]); % unique ID for this file
 data_source = d.getDataSource();
 data_source.setDeploymentId(deployment); % deployment ID
 
@@ -142,11 +143,11 @@ for k = 1:numel(splatin) % don't inlcude the last, since it's also Pp
     speciestype.setValue(h.toXsInteger(str2num(species)));
     kind.setSpeciesId(speciestype);
     kind.setCall('Clicks');
-    if ~strcmp(sp{k},'Gg') % | strcmp(splatin{k},'Phocoena phocoena') % if this is LoA or Pp
-        params = javaObject('nilus.DetectionEffortKind$Parameters'); % kind.getParameters() was returning empty, so this is my solution to create the java object directly
-        params.setSubtype(sp{k}) % add in the subtype information
-        kind.setParameters(params)
-    end
+    % if ~strcmp(sp{k},'Gg') % | strcmp(splatin{k},'Phocoena phocoena') % if this is LoA or Pp
+    %     params = javaObject('nilus.DetectionEffortKind$Parameters'); % kind.getParameters() was returning empty, so this is my solution to create the java object directly
+    %     params.setSubtype(sp{k}) % add in the subtype information
+    %     kind.setParameters(params)
+    % end
     granularitytype = GranularityEnumType.fromValue('binned');
     granularity = GranularityType();
     granularity.setValue(granularitytype);
@@ -201,12 +202,12 @@ for k = 1:length(sp) % for each species selected
         callList = det.getCall(); % grab the call element
         callList.add('Clicks'); % specify these are clicks
 
-        % add in subtypes
-        if ~strcmp(sp{k},'Gg') 
-            h.createElement(det,'Parameters');
-            params = det.getParameters();
-            params.setSubtype(sp{k}); % specify the subtype
-        end
+        % % add in subtypes
+        % if ~strcmp(sp{k},'Gg') 
+        %     h.createElement(det,'Parameters');
+        %     params = det.getParameters();
+        %     params.setSubtype(sp{k}); % specify the subtype
+        % end
 
         detList.add(det); % add this detection
 
@@ -216,7 +217,7 @@ for k = 1:length(sp) % for each species selected
 
 end
 
-xml_out = [xmlOutFolder,'\',deployment,'_odontocete_SPICE_click_detections_',p.userid,'.xml'];
+xml_out = [xmlOutFolder,'\',deployment,'_NBHF_SPICE_click_detections_',p.userid,'.xml'];
 fprintf('XML document formatted for Tethys saving at: %s\n',xml_out)
 m.marshal(d, xml_out) % save the xml file in your path from above
 fprintf('XML file saved. Now launching submission interface. Please upload the XML file you just generated. \n')
